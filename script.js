@@ -1,39 +1,45 @@
-class State {
-  state;
-
-  constructor(initialState) {
-    this.state = initialState;
+class PubSub {
+  constructor() {
+    this.handlers = {};
   }
 
-  set(newState) {
-    this.state = newState;
+  // 구독자 = html element
+  subscribe(eventName, listener) {
+    if (!this.handlers[eventName]) {
+      this.handlers[eventName] = listener;
+    }
   }
 
-  get() {
-    return this.state;
+  // 발행자 = setState 함수 안에서
+  publish(eventName, newState) {
+    if (this.handlers[eventName]) {
+      this.handlers[eventName](newState);
+    }
   }
 }
 
-const useState = (initialState) => {
-  const state = new State(initialState);
+const pubsub = new PubSub();
 
-  const render = () => {
-    // 그 state 설정되어있는 html 부분만 리렌더링 -> dom Tree 에서 해당 state 설정된 부분 어떻게 확인?
-    const sentence = document.querySelector("span.changed-sentence");
-    sentence.innerText = state.get();
-  };
+const useState = (initialState) => {
+  let state = initialState;
 
   const setState = (newState) => {
-    state.set(newState);
-    render();
+    pubsub.publish("changeState", newState);
   };
 
-  return [state.get(), setState];
+  return [state, setState];
 };
 
 const [state, setState] = useState("");
 
+// input Element로 state 발행하기
 const inputElement = document.querySelector("input");
 inputElement.addEventListener("input", (e) => {
   setState(e.target.value);
+});
+
+// span Element들이 state 구독하기
+pubsub.subscribe("changeState", (newState) => {
+  const spanElements = document.querySelectorAll("span.changed-sentence");
+  spanElements.forEach((spanElement) => (spanElement.innerText = newState));
 });
